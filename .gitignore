@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Generated data & model artifacts (regenerate via scripts/generate_mock_data.py)
+data/raw/*
+data/processed/*
+models/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!models/.gitkeep
+mlruns/
+mlartifacts/
+
+# CI output
+pytest-results.xml
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
