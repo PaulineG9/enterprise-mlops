@@ -1,0 +1,24 @@
+# --- Core data & ML ---
+pandas>=2.1
+numpy>=1.26
+scikit-learn>=1.4
+joblib>=1.3
+pyarrow>=14.0          # parquet I/O for the local ETL fallback
+
+# --- Distributed data / lakehouse (Databricks production path) ---
+pyspark>=3.5
+delta-spark>=3.1
+
+# --- Experiment tracking & model registry ---
+mlflow>=2.11
+
+# --- Azure ML deployment ---
+azure-ai-ml>=1.15
+azure-identity>=1.16
+
+# --- HTTP / endpoint testing ---
+requests>=2.31
+
+# --- Dev, lint & test tooling ---
+pytest>=8.0
+flake8>=7.0
