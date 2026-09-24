@@ -21,6 +21,7 @@ Usage:
 import argparse
 import json
 import os
+import tempfile
 from datetime import datetime, timezone
 
 import joblib
@@ -35,13 +36,18 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
 try:
+    from mlflow.models import infer_signature
+    INFER_SIGNATURE_AVAILABLE = True
+except ImportError:
+    INFER_SIGNATURE_AVAILABLE = False
+
+try:
     import mlflow
     import mlflow.sklearn
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
 
-EXPERIMENT_NAME = "enterprise-asset-risk"
 REGISTERED_MODEL_NAME = "asset-failure-risk-classifier"
 
 NUMERIC_FEATURES = [
@@ -86,7 +92,23 @@ def evaluate(y_true, y_pred, y_proba) -> dict:
     }
 
 
-def train(features_path: str, model_type: str, model_dir: str, test_size: float = 0.2, seed: int = 42):
+def train(
+    features_path: str,
+    model_type: str,
+    model_dir: str,
+    test_size: float = 0.2,
+    seed: int = 42,
+    register_from_local_file: bool = False,
+):
+    """
+    register_from_local_file: when False (default), the model is registered
+    via a runs:/<run_id>/... URI -- the standard MLflow pattern, and what
+    Databricks' own model registry expects. Set this to True only when
+    tracking to an Azure ML backend: Azure ML's own run IDs are GUID-based
+    and exceed the 32-character limit its CreateModelVersion API validates
+    against, so registration there needs to happen from a local file path
+    instead (which carries no run_id at all).
+    """
     df = load_features(features_path)
     missing_cols = [c for c in NUMERIC_FEATURES + CATEGORICAL_FEATURES + [TARGET] if c not in df.columns]
     if missing_cols:
@@ -112,7 +134,13 @@ def train(features_path: str, model_type: str, model_dir: str, test_size: float 
     os.makedirs(model_dir, exist_ok=True)
 
     if MLFLOW_AVAILABLE:
-        mlflow.set_experiment(EXPERIMENT_NAME)
+        # No mlflow.set_experiment() call here on purpose: the caller (the
+        # notebook) already sets it, using whatever the active tracking
+        # backend actually requires -- a full workspace path like
+        # "/Shared/enterprise-asset-risk" on Databricks, or a bare name on
+        # Azure ML. Calling set_experiment() again here with a hardcoded
+        # name would silently override that and could point the run at an
+        # invalid/unexpected experiment depending on the backend.
         with mlflow.start_run() as run:
             pipeline.fit(X_train, y_train)
             y_pred = pipeline.predict(X_test)
@@ -121,13 +149,50 @@ def train(features_path: str, model_type: str, model_dir: str, test_size: float 
 
             mlflow.log_params(params)
             mlflow.log_metrics(metrics)
-            mlflow.sklearn.log_model(
-                pipeline,
-                artifact_path="model",
-                registered_model_name=REGISTERED_MODEL_NAME,
-            )
+
+            # Log the model artifact first, then register it as a separate
+            # step (rather than passing registered_model_name directly into
+            # log_model). This two-call pattern is what Azure ML's own docs
+            # recommend, and it avoids a run_id-length validation bug that
+            # the combined call can trigger when tracking to an Azure ML
+            # backend from a Databricks-hosted run (CreateModelVersion:
+            # "run_id too long. Maximum length is 32 characters").
+            #
+            # A model signature (input/output schema) is attached whenever
+            # possible: it lets a deployed endpoint validate incoming
+            # requests against the expected columns/types automatically,
+            # and it's a hard requirement if this ever gets registered to a
+            # Unity Catalog model registry instead of Azure ML's.
+            artifact_path = "model"
+            log_model_kwargs = {"artifact_path": artifact_path}
+            if INFER_SIGNATURE_AVAILABLE:
+                signature = infer_signature(X_train, pipeline.predict(X_train))
+                log_model_kwargs["signature"] = signature
+                log_model_kwargs["input_example"] = X_train.head(3)
+            else:
+                print("mlflow.models.infer_signature unavailable -- logging model without a signature.")
+
+            mlflow.sklearn.log_model(pipeline, **log_model_kwargs)
             run_id = run.info.run_id
-            print(f"[mlflow] Run {run_id} logged to experiment '{EXPERIMENT_NAME}'.")
+
+            if register_from_local_file:
+                # Azure ML path: register from a LOCAL FILE PATH rather than
+                # a runs:/<run_id>/... URI, sidestepping Azure ML's own
+                # run_id-length validation bug (see the docstring above).
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    local_model_path = os.path.join(tmp_dir, "model")
+                    save_model_kwargs = {"path": local_model_path}
+                    if "signature" in log_model_kwargs:
+                        save_model_kwargs["signature"] = log_model_kwargs["signature"]
+                        save_model_kwargs["input_example"] = log_model_kwargs["input_example"]
+                    mlflow.sklearn.save_model(pipeline, **save_model_kwargs)
+                    mlflow.register_model(f"file://{local_model_path}", REGISTERED_MODEL_NAME)
+            else:
+                # Standard MLflow pattern -- what Databricks' own registry expects.
+                mlflow.register_model(f"runs:/{run_id}/{artifact_path}", REGISTERED_MODEL_NAME)
+
+            active_experiment = mlflow.get_experiment(run.info.experiment_id)
+            print(f"[mlflow] Run {run_id} logged to experiment '{active_experiment.name}'.")
             print(f"[mlflow] Model registered as '{REGISTERED_MODEL_NAME}'.")
     else:
         print("MLflow not available in this environment -- falling back to local artifact logging.")
@@ -163,7 +228,12 @@ def main():
     parser.add_argument("--model-dir", type=str, default="models")
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
-    args = parser.parse_args()
+    # parse_known_args (not parse_args) so that stray arguments injected by
+    # a Jupyter/Databricks kernel (e.g. "-f /databricks/kernel-connections/
+    # ....json", present if this file gets executed via %run instead of
+    # imported) are silently ignored rather than causing a SystemExit --
+    # real CLI usage from an actual shell is unaffected.
+    args, _unrecognized = parser.parse_known_args()
 
     train(args.features, args.model_type, args.model_dir, args.test_size, args.seed)
 
