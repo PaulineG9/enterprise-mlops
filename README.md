@@ -11,7 +11,7 @@
 ---
 
 ## 📌 Executive Summary & Business Context
-Industrial, mining, and insurance operations across high-capital sectors incur significant financial losses due to unscheduled asset down-time. This project implements an enterprise-grade, end-to-end Machine Learning Operations (MLOps) architecture designed to transition infrastructure maintenance from expensive reactive fixing to automated, data-driven predictive optimization.
+Industrial, mining, and logisitics operations across high-capital sectors incur significant financial losses due to unscheduled asset down-time. This project implements an enterprise-grade, end-to-end Machine Learning Operations (MLOps) architecture designed to transition infrastructure maintenance from expensive reactive fixing to automated, data-driven predictive optimization.
 
 ## 🛠️ Tech Stack & Infrastructure Layout
 * **Data Architecture:** Azure Blob Storage Gen2 (Data Lake), Azure Databricks, PySpark, Delta Lake.
@@ -23,21 +23,25 @@ Industrial, mining, and insurance operations across high-capital sectors incur s
 ```text
 enterprise-mlops/
 ├── .github/workflows/
-│   └── mlops_ci_cd.yml       <- Automated GitHub Actions CI/CD script
+│   └── mlops_ci_cd.yml                        <- Automated GitHub Actions CI/CD script
+├── notebooks/
+│   ├── 01_run_etl_pipeline.py                 <- Databricks notebook: runs the ETL against ADLS Gen 2
+│   ├── 02_run_training_databricks_mlflow.py   <- Databricks notebook: trains, tracks to Databricks' MLflow
+│   └── 03_run_training_azureml_mlflow.py      <- Databricks notebook: trains, tracks to Azure ML
 ├── src/
-│   ├── etl_pipeline.py       <- Production PySpark cleaning script
-│   ├── train.py              <- MLflow training & registry script
-│   └── deploy.py             <- Azure ML API deployment script
+│   ├── etl_pipeline.py                        <- Production PySpark cleaning script
+│   ├── train.py                               <- MLflow training & registry script
+│   └── deploy.py                              <- Azure ML API deployment script
 ├── tests/
-│   └── test_pipeline_logic.py <- Automated PyTest quality verification script
+│   └── test_pipeline_logic.py                 <- Automated PyTest quality verification script
 ├── scripts/
-│   ├── generate_mock_data.py <- Synthetic data generator engine
-│   └── test_endpoint.py      <- Live HTTP REST API verification script
-├── data/                     <- Generated locally; not committed (see .gitignore)
-├── models/                   <- Generated locally; not committed (see .gitignore)
-├── .flake8                   <- Lint configuration
-├── requirements.txt          <- Python package dependencies list
-└── README.md                 <- Enterprise consulting overview documentation
+│   ├── generate_mock_data.py                  <- Synthetic data generator engine
+│   └── test_endpoint.py                       <- Live HTTP REST API verification script
+├── data/                                      <- Generated locally; not committed (see .gitignore)
+├── models/                                    <- Generated locally; not committed (see .gitignore)
+├── .flake8                                    <- Lint configuration
+├── requirements.txt                           <- Python package dependencies list
+└── README.md                                  <- Enterprise consulting overview documentation
 ```
 
 ## 🏗️ Technical Pipeline Breakdown
