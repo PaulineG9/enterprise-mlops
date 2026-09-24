@@ -11,7 +11,7 @@
 ---
 
 ## 📌 Executive Summary & Business Context
-Industrial, mining, and logisitics operations across high-capital sectors incur significant financial losses due to unscheduled asset down-time. This project implements an enterprise-grade, end-to-end Machine Learning Operations (MLOps) architecture designed to transition infrastructure maintenance from expensive reactive fixing to automated, data-driven predictive optimization.
+Industrial, mining, and manufacturing operations across high-capital sectors incur significant financial losses due to unscheduled asset down-time. This project implements an enterprise-grade, end-to-end Machine Learning Operations (MLOps) architecture designed to transition infrastructure maintenance from expensive reactive fixing to automated, data-driven predictive optimization.
 
 ## 🛠️ Tech Stack & Infrastructure Layout
 * **Data Architecture:** Azure Blob Storage Gen2 (Data Lake), Azure Databricks, PySpark, Delta Lake.
