@@ -25,9 +25,10 @@ enterprise-mlops/
 ├── .github/workflows/
 │   └── mlops_ci_cd.yml                        <- Automated GitHub Actions CI/CD script
 ├── notebooks/
-│   ├── 01_run_etl_pipeline.py                 <- Databricks notebook: runs the ETL against ADLS Gen 2
-│   ├── 02_run_training_databricks_mlflow.py   <- Databricks notebook: trains, tracks to Databricks' MLflow
-│   └── 03_run_training_azureml_mlflow.py      <- Databricks notebook: trains, tracks to Azure ML
+│   ├── 01_run_generate_data.py                <- Databricks notebook: generates the data
+│   ├── 02_run_etl_pipeline.py                 <- Databricks notebook: runs the ETL against ADLS Gen 2
+│   ├── 03_run_training_databricks_mlflow.py   <- Databricks notebook: trains, tracks to Databricks' MLflow
+│   └── 04_run_training_azureml_mlflow.py      <- Databricks notebook: trains, tracks to Azure ML
 ├── src/
 │   ├── etl_pipeline.py                        <- Production PySpark cleaning script
 │   ├── train.py                               <- MLflow training & registry script
