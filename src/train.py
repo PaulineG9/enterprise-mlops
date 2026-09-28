@@ -25,7 +25,6 @@ import tempfile
 from datetime import datetime, timezone
 
 import joblib
-import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier

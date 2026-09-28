@@ -28,8 +28,8 @@ DEFAULT_OUTPUT = os.path.join("data", "raw", "asset_telemetry.csv")
 
 
 def _simulate_asset_history(asset_id: int, asset_type: str, region: str,
-                             n_readings: int, rng: np.random.Generator,
-                             start_date: datetime):
+                            n_readings: int, rng: np.random.Generator,
+                            start_date: datetime):
     """Simulate one asset's sensor history, optionally ending in failure.
 
     Roughly 1 in 6 assets fail by the end of their observation window.

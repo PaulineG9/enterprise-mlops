@@ -36,7 +36,7 @@ import sys
 try:
     from azure.ai.ml import MLClient
     from azure.ai.ml.entities import (ManagedOnlineDeployment,
-                                       ManagedOnlineEndpoint, Model)
+                                      ManagedOnlineEndpoint)
     from azure.identity import DefaultAzureCredential
     AZURE_SDK_AVAILABLE = True
 except ImportError:
