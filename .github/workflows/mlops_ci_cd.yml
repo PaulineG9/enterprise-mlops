@@ -81,7 +81,15 @@ jobs:
     name: Deploy to Azure ML (Managed Online Endpoint)
     needs: pipeline-smoke-test
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # Manual only: this stands up a live, billed Azure ML Managed online
+    # Endpoint, so it must never fire automatically on a push/PR -- only 
+    # a deliverate "Run workflow" click *Actions tab -> MLOps CI/CD
+    # Pipeline -> Run workflow, on the main branch) triggers it. 
+    # Tear the endpoint back down once done demoing to avoid ongoing
+    # compute charges
+    #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    if: github.event_name == 'workflow_dispatch'
     environment: production
 
     steps:
