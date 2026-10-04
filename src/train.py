@@ -34,11 +34,11 @@ from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
 
-try:
-    from mlflow.models import infer_signature
-    INFER_SIGNATURE_AVAILABLE = True
-except ImportError:
-    INFER_SIGNATURE_AVAILABLE = False
+import matplotlib
+matplotlib.use("Agg") # headless backend -- no display available on a
+                        # laptop run without a GUI, a Databricks cluster,
+                        # or a GitHub Actions runner
+import matplotlib.pyplot as plt
 
 try:
     import mlflow
@@ -46,6 +46,19 @@ try:
     MLFLOW_AVAILABLE = True
 except ImportError:
     MLFLOW_AVAILABLE = False
+
+try:
+    from mlflow.models import infer_signature
+    INFER_SIGNATURE_AVAILABLE = True
+except ImportError:
+    INFER_SIGNATURE_AVAILABLE = False
+
+# No EXPERIMENT_NAME constant here on purpose: Databricks needs a full
+# workspace path (e.g. "/Shared/enterprise-asset-risk") and Azure ML needs
+# a bare name (e.g. "enterprise-asset-risk") -- those differ per backend,
+# so the CALLER (notebook or script) sets the active experiment via
+# mlflow.set_experiment(...) *before* calling train(). train() itself
+# never touches the experiment, so it can't silently override whatever
 
 REGISTERED_MODEL_NAME = "asset-failure-risk-classifier"
 
@@ -91,6 +104,28 @@ def evaluate(y_true, y_pred, y_proba) -> dict:
     }
 
 
+def plot_confusion_matrix(y_true, y_pred):
+    """Build a confusion matrix figure for the held-out test set"""
+    cm = confusion_matrix(y_true,y_pred)
+    fig, ax = plt.subplots(figsize=(5, 4.5))
+    ConfusionMatrixDisplay(cm, display_labels=["No failure", "Failure (7d)"]).plot(
+        ax=ax, cmap= "Blues", colorbar=False
+    )
+    ax.set_title("Confusion Maxtrix (test set)")
+    fig.tight_layout()
+    return fig
+
+def plot_roc_curve(y_true, y_proba, roc_auc: float):
+    """Build an ROC-curve figure for the held-out test set."""
+    fpr, tpr = roc_curve(y_true, y_proba)
+    fig, ax = plt.subplots(figsize=(5, 4.5))
+    RocCurveDisplay(fpr=fpr, trp=tpr, roc_auc=roc_auc).plot(ax=ax)
+    ax.plot([0,1], [0,1], linestyle= "--", color= "grey", linewidth=1)
+    ax.set_title("ROC Curve for (test set)")
+    fig.tight_layout()
+    return fig
+
+
 def train(
     features_path: str,
     model_type: str,
@@ -99,14 +134,17 @@ def train(
     seed: int = 42,
     register_from_local_file: bool = False,
 ):
-    """
-    register_from_local_file: when False (default), the model is registered
-    via a runs:/<run_id>/... URI -- the standard MLflow pattern, and what
-    Databricks' own model registry expects. Set this to True only when
-    tracking to an Azure ML backend: Azure ML's own run IDs are GUID-based
-    and exceed the 32-character limit its CreateModelVersion API validates
-    against, so registration there needs to happen from a local file path
-    instead (which carries no run_id at all).
+    """ Train, evaluate, and (when MLflow is available) log + register model.
+
+    register_from_local_file: 
+        False (default) -- register via the standard `runs:/<run_id>/model`
+        URI. Correct for Databricks' own MLflow/Model Registry.
+
+        True -- save the model to a local temp dir with
+        `mlflow.sklearn.save_model()` and register from a `file://` URI
+        instead. Use this ONLY when tracking against Azure ML: Azure ML's
+        `CreateModelVersion` rejects `runs:/` URIs built from its own
+        (longer-than-32-char) run IDs, so the `runs:/` path 400s there.
     """
     df = load_features(features_path)
     missing_cols = [c for c in NUMERIC_FEATURES + CATEGORICAL_FEATURES + [TARGET] if c not in df.columns]
@@ -190,6 +228,17 @@ def train(
                 # Standard MLflow pattern -- what Databricks' own registry expects.
                 mlflow.register_model(f"runs:/{run_id}/{artifact_path}", REGISTERED_MODEL_NAME)
 
+            cm_fig = plot_confusion_matrix(y_test, y_pred)
+            roc_fig = plot_roc_curve(y_test, y_proba, metrics["roc_auc"])
+            try:
+                # mlflow.log_figure -> Azure ML Studio's "Images" tab
+                mlflow.log_figure(cm_fig, "plots/confusion_matrix.png")
+                mlflow.log_figure(roc_fig, "plots/roc_curve.png")
+            finally:
+                plt.close(cm_fig)
+                plt.close(roc_fig)
+  
+
             active_experiment = mlflow.get_experiment(run.info.experiment_id)
             print(f"[mlflow] Run {run_id} logged to experiment '{active_experiment.name}'.")
             print(f"[mlflow] Model registered as '{REGISTERED_MODEL_NAME}'.")
@@ -204,12 +253,30 @@ def train(
         model_path = os.path.join(model_dir, f"{run_id}.joblib")
         joblib.dump(pipeline, model_path)
 
-        metadata = {"run_id": run_id, "params": params, "metrics": metrics, "model_path": model_path}
+        cm_fig = plot_confusion_matrix(y_test, y_pred)
+        roc_fig = plot_roc_curve(y_test, y_proba, metrics["roc_auc"])
+        cm_path = os.path.join(model_dir, f"{run_id}_confusion_matrix.png")
+        roc_path = os.path.join(model_dir, f"{run_id}_roc_curve.png")
+        try:
+            cm_fig.savefig(cm_path, dpi=150)
+            roc_fig.savefig(roc_path, dpi=150)
+        finally:
+            plt.close(cm_fig)
+            plt.close(roc_fig)
+
+        metadata = {
+            "run_id": run_id,
+            "params": params,
+            "metrics": metrics,
+            "model_path": model_path,
+            "plots": {"confusion_matrix": cm_path, "roc_curve": roc_path},
+        }
         metadata_path = os.path.join(model_dir, f"{run_id}.json")
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
 
         print(f"[local backend] Model saved -> {model_path}")
+        print(f"[local backend] Plots saved -> {cm_path}, {roc_path}")
         print(f"[local backend] Run metadata -> {metadata_path}")
 
     print("Evaluation metrics:")
@@ -227,6 +294,9 @@ def main():
     parser.add_argument("--model-dir", type=str, default="models")
     parser.add_argument("--test-size", type=float, default=0.2)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--register-from-local-file", action="store_true",
+                         help="Register via a file:// URI instead of runs:/ -- only needed when "
+                              "tracking against Azure ML (works around its run_id-length bug).")
     # parse_known_args (not parse_args) so that stray arguments injected by
     # a Jupyter/Databricks kernel (e.g. "-f /databricks/kernel-connections/
     # ....json", present if this file gets executed via %run instead of
@@ -234,7 +304,8 @@ def main():
     # real CLI usage from an actual shell is unaffected.
     args, _unrecognized = parser.parse_known_args()
 
-    train(args.features, args.model_type, args.model_dir, args.test_size, args.seed)
+    train(args.features, args.model_type, args.model_dir, args.test_size, args.seed,
+          register_from_local_file=args.register_from_local_file)
 
 
 if __name__ == "__main__":

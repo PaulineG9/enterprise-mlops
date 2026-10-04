@@ -34,6 +34,12 @@ try:
 except ImportError:
     PYSPARK_AVAILABLE = False
 
+try:
+    from delta import configure_spark_with_delta_pip
+    DELTA_PIP_AVAILABLE = True
+except ImportError:
+    DELTA_PIP_AVAILABLE = False
+
 NUMERIC_SENSOR_COLS = ["vibration_mm_s", "heat_celsius", "pressure_kpa"]
 ROLLING_WINDOW = 5
 
@@ -129,8 +135,22 @@ def run_spark_pipeline(input_path: str, output_path: str):
         .appName("EnterpriseAssetETL")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
-        .getOrCreate()
     )
+
+
+    if DELTA_PIP_AVAILABLE:
+        # Local / non-Databricks Spark sessions need the Delta Lake JARs
+        # resolved and put on the classpath explicitly -- setting the
+        # spark.sql.extensions / spark.sql.catalog.spark_catalog configs
+        # alone only *names* the Delta classes, it doesn't fetch them.
+        # On Databricks, Delta is already on the cluster classpath, so
+        # this branch is skipped there (DELTA_PIP_AVAILABLE requires the
+        # `delta-spark` pip package, which you install locally via
+        # `pip install delta-spark`).
+        spark = configure_spark_with_delta_pip(builder).getOrCreate()
+    else:
+        spark = builder.getOrCreate()
+
 
     raw_df = spark.read.option("header", True).option("inferSchema", True).csv(input_path)
 
