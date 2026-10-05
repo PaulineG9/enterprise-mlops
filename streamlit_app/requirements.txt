@@ -1,0 +1,10 @@
+# Kept intentionally lean -- this app only needs to LOAD and score an
+# already-trained sklearn model, not train one or talk to any tracking
+# server, so we use mlflow-skinny instead of the full mlflow package
+# (skinny excludes the server, UI, and most cloud-storage integrations,
+# which trims a lot of unused weight off a Streamlit Cloud deployment).
+streamlit>=1.38
+mlflow-skinny>=2.15,<3.0
+scikit-learn>=1.4
+pandas>=2.1
+numpy>=1.26

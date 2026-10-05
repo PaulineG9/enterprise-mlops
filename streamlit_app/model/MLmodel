@@ -1,0 +1,39 @@
+databricks_runtime: '19.8'
+flavors:
+  python_function:
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.sklearn
+    model_path: model.pkl
+    predict_fn: predict
+    python_version: 3.12.3
+  sklearn:
+    code: null
+    pickled_model: model.pkl
+    serialization_format: cloudpickle
+    sklearn_version: 1.7.2
+is_signature_from_type_hint: false
+mlflow_version: 2.22.5
+model_size_bytes: 1162278
+model_uuid: 7d062bbbc5c44471b7425536e14afc0d
+prompts: null
+saved_input_example_info:
+  artifact_path: input_example.json
+  pandas_orient: split
+  serving_input_path: serving_input_example.json
+  type: dataframe
+signature:
+  inputs: '[{"type": "double", "name": "vibration_mm_s", "required": true}, {"type":
+    "double", "name": "heat_celsius", "required": true}, {"type": "double", "name":
+    "pressure_kpa", "required": true}, {"type": "double", "name": "runtime_hours",
+    "required": true}, {"type": "integer", "name": "cycle_count", "required": true},
+    {"type": "integer", "name": "age_days", "required": true}, {"type": "double",
+    "name": "rolling_vibration_avg", "required": true}, {"type": "double", "name":
+    "rolling_heat_avg", "required": true}, {"type": "integer", "name": "risk_flag",
+    "required": true}, {"type": "string", "name": "asset_type", "required": true},
+    {"type": "string", "name": "region", "required": true}]'
+  outputs: '[{"type": "tensor", "tensor-spec": {"dtype": "int32", "shape": [-1]}}]'
+  params: null
+type_hint_from_example: false
+utc_time_created: '2026-10-05 11:09:18.978625'
