@@ -1,5 +1,5 @@
-# Enterprise Cloud MLOps: Automated Asset Analytics & Risk Pipeline
-[![MLOps CI/CD Pipeline](https://github.com)](https://github.com)
+# Enterprise Cloud MLOps: Automated Asset Analytics & Risk Pipeline 
+**Live demo:** https://enterprise-mlops-ehplw6k6ry3pazsbfqhfyn.streamlit.app/
 
 ---
 
