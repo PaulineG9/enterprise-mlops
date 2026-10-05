@@ -25,6 +25,7 @@ Usage:
 import argparse
 import os
 
+import numpy as np
 import pandas as pd
 
 try:
@@ -130,13 +131,12 @@ def run_spark_pipeline(input_path: str, output_path: str):
     asset type, computes rolling risk features with a window function,
     and writes the result as a Delta table partitioned by region.
     """
-    spark = (
+    builder = (
         SparkSession.builder
         .appName("EnterpriseAssetETL")
         .config("spark.sql.extensions", "io.delta.sql.DeltaSparkSessionExtension")
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog")
     )
-
 
     if DELTA_PIP_AVAILABLE:
         # Local / non-Databricks Spark sessions need the Delta Lake JARs
@@ -150,7 +150,6 @@ def run_spark_pipeline(input_path: str, output_path: str):
         spark = configure_spark_with_delta_pip(builder).getOrCreate()
     else:
         spark = builder.getOrCreate()
-
 
     raw_df = spark.read.option("header", True).option("inferSchema", True).csv(input_path)
 

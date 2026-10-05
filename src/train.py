@@ -28,8 +28,8 @@ import joblib
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
-from sklearn.metrics import (accuracy_score, f1_score, precision_score,
-                              recall_score, roc_auc_score)
+from sklearn.metrics import (ConfusionMatrixDisplay, RocCurveDisplay, accuracy_score, confusion_matrix, f1_score, precision_score,
+                              recall_score, roc_auc_score, roc_curve)
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder
@@ -117,11 +117,11 @@ def plot_confusion_matrix(y_true, y_pred):
 
 def plot_roc_curve(y_true, y_proba, roc_auc: float):
     """Build an ROC-curve figure for the held-out test set."""
-    fpr, tpr = roc_curve(y_true, y_proba)
+    fpr, tpr, _ = roc_curve(y_true, y_proba)
     fig, ax = plt.subplots(figsize=(5, 4.5))
-    RocCurveDisplay(fpr=fpr, trp=tpr, roc_auc=roc_auc).plot(ax=ax)
-    ax.plot([0,1], [0,1], linestyle= "--", color= "grey", linewidth=1)
-    ax.set_title("ROC Curve for (test set)")
+    RocCurveDisplay(fpr=fpr, tpr=tpr, roc_auc=roc_auc).plot(ax=ax)
+    ax.plot([0, 1], [0, 1], linestyle="--", color="grey", linewidth=1)
+    ax.set_title("ROC Curve (test set)")
     fig.tight_layout()
     return fig
 
