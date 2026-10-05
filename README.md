@@ -6,7 +6,7 @@
 ### 🚀 Project Status: Active Development & Applied Cloud Learning
 > **Note to Reviewers & Hiring Teams:** This repository serves as a live, end-to-end technical lab demonstrating my transition into enterprise cloud data systems.
 >
-> Having completed **90% of my GitHub Foundations**, I am currently utilizing this framework to practically apply **Microsoft Azure Machine Learning (DP-100)** and **Azure Databricks / Delta Lake** architectures to enterprise operations. The codebase is under active development as I continuously integrate production-grade MLOps features.
+> Having completed my **GitHub Foundations** course, I am currently utilizing this framework to practically apply **Microsoft Azure Machine Learning (DP-100)** and **Azure Databricks / Delta Lake** architectures to enterprise operations. The codebase is under active development as I continuously integrate production-grade MLOps features.
 
 ---
 
@@ -39,7 +39,17 @@ enterprise-mlops/
 │   ├── generate_mock_data.py                  <- Synthetic data generator engine
 │   └── test_endpoint.py                       <- Live HTTP REST API verification script
 ├── data/                                      <- Generated locally; not committed (see .gitignore)
-├── models/                                    <- Generated locally; not committed (see .gitignore)
+├── streamlit_app/
+│    ├── models/                               <- Generated locally; not committed
+│      ├── conda.yml                               
+│      ├── MLmodel                           
+│      ├── model.pk                           
+│      ├── python_env.yaml
+│      ├── requirement.txt
+│      └── README.md                           <- Model download instructions 
+│    ├── app.py
+│    ├── requirement.txt
+│    └── README.md                             <- Streamlit app description and overview
 ├── .flake8                                    <- Lint configuration
 ├── requirements.txt                           <- Python package dependencies list
 └── README.md                                  <- Enterprise consulting overview documentation

@@ -13,9 +13,6 @@ pip install -r requirements.txt
 streamlit run app.py
 ```
 
-The app will show an error on startup if `model/` hasn't been populated
-yet -- see `model/README.md` for how to download the trained model from
-Azure ML.
 
 ## Deploy for free on Streamlit Community Cloud
 
